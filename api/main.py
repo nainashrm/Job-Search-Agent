@@ -1,34 +1,37 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, BackgroundTasks, Depends
 import fitz
 
+app = FastAPI(
+    title="Resume Parser API",
+    description="An API to parse resumes from PDF files and extract relevant information.",
+    version="1.0.0"
+)
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Resume Parser API!"}
 
-@app.post("/onboard", status_code=201)
-async def onboard(
-    background_tasks: BackgroundTasks,
-    resume: UploadFile = File(...),
-    preferences: str = Form(...),  # JSON string
-    db: AsyncSession = Depends(get_db),
-):
-    prefs = UserPreferences.model_validate_json(preferences)
+@app.post("/parse_resume/")
+async def parse_resume(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF files are allowed.")
+    
+    try:
+        # Read the uploaded PDF file
+        pdf_data = await file.read()
+        doc = fitz.open(stream=pdf_data, filetype="pdf")
+        
+        # Extract text from the PDF
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        
+        # Here you can add your resume parsing logic to extract relevant information
+        # For demonstration, we will just return the extracted text
+        return {"extracted_text": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
-    user = User(name=prefs.name, email=prefs.email)
-    db.add(user); await db.flush()
-
-    file_bytes = await resume.read()
-    raw_text   = extract_raw_text(file_bytes)
-    sections   = split_into_sections(raw_text)
-    bullets    = extract_bullets(sections.get("experience",""))
-
-    resume_rec = Resume(
-        user_id=user.id, filename=resume.filename,
-        raw_text=raw_text, sections=sections,
-        bullets=bullets, preferences=prefs.model_dump(),
-    )
-    db.add(resume_rec); await db.flush()
-
-    background_tasks.add_task(
-        start_job_search,
-        resume_id=str(resume_rec.id),
-        preferences=prefs.model_dump()
-    )
-    return {"resume_id": str(resume_rec.id), "user_id": str(user.id)}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
