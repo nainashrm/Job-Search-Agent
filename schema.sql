@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict QB7OCPqZ32LK5PsBrvw2kysbiSGTGLsjbfYFdEkV1ZzsFAjjQuMGqpGGHpNqZMZ
+\restrict JCwvE3aVn08qsFWrOW1Gm7HwK0zId5KyZCJJ3JWRS776HNfRcxf1Bv7kegEbfci
 
 -- Dumped from database version 15.18
 -- Dumped by pg_dump version 15.18
@@ -84,11 +84,11 @@ CREATE TABLE public.resumes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     filename text,
-    raw_text text NOT NULL,
-    sections jsonb,
-    bullets jsonb,
     preferences jsonb,
-    uploaded_at timestamp with time zone DEFAULT now()
+    uploaded_at timestamp with time zone DEFAULT now(),
+    experience jsonb,
+    skills jsonb,
+    education jsonb
 );
 
 
@@ -192,5 +192,5 @@ ALTER TABLE ONLY public.resumes
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QB7OCPqZ32LK5PsBrvw2kysbiSGTGLsjbfYFdEkV1ZzsFAjjQuMGqpGGHpNqZMZ
+\unrestrict JCwvE3aVn08qsFWrOW1Gm7HwK0zId5KyZCJJ3JWRS776HNfRcxf1Bv7kegEbfci
 
