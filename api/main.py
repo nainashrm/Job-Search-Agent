@@ -8,6 +8,7 @@ from psycopg2.extras import register_uuid, Json
 import os
 import httpx
 
+
 # Register UUID adapter for psycopg2
 register_uuid()
 
@@ -59,7 +60,7 @@ def read_root():
 
 # --- MAIN PIPELINE: UPLOAD, EXTRACT, CALL AGENT, & SAVE ---
 @app.post("/resumes/upload")
-async def upload_and_extract_resume(user_id: UUID, file: UploadFile = File(...)):
+async def upload_and_extract_resume(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Invalid file type. Only PDFs are allowed.")
     
@@ -72,24 +73,32 @@ async def upload_and_extract_resume(user_id: UUID, file: UploadFile = File(...))
         # 2. Insert initial placeholder into database
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                # Verify user exists
-                cursor.execute("SELECT id FROM users WHERE id = %s;", (user_id,))
-                if not cursor.fetchone():
-                    raise HTTPException(status_code=400, detail=f"User ID '{user_id}' does not exist.")
+                # Automatically generate a dummy user row first
+                import random
+                random_suffix = random.randint(1000, 9999)
+                cursor.execute(
+                    """
+                    INSERT INTO users (email) 
+                    VALUES (%s) 
+                    RETURNING id;
+                    """,
+                    (f"auto_user_{random_suffix}@example.com",)
+                )
+                auto_user_id = cursor.fetchone()[0]
                 
-                # Insert Resume tracking row
+                # Insert Resume tracking row linked to our new auto-generated user
                 cursor.execute(
                     """
                     INSERT INTO resumes (user_id, filename)
                     VALUES (%s, %s)
                     RETURNING id, uploaded_at;
                     """,
-                    (user_id, file.filename)
+                    (auto_user_id, file.filename)
                 )
                 db_row = cursor.fetchone()
                 new_resume_id = db_row[0]
                 uploaded_at = db_row[1]
-            conn.commit() # Commit the insert so it's saved
+            conn.commit()
 
         # 3. Call the Agent API (Currently hits the /mock-agent endpoint)
         async with httpx.AsyncClient() as client:
