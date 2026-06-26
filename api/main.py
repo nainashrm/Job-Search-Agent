@@ -6,7 +6,10 @@ from uuid import UUID
 import psycopg2
 from psycopg2.extras import register_uuid, Json
 import os
+from dotenv import load_dotenv
 import httpx
+
+load_dotenv()
 
 
 # Register UUID adapter for psycopg2
