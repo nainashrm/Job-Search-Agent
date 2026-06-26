@@ -44,5 +44,24 @@ services:
       extractor-agent: {condition: service_started}
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
+  # --- Frontend Web App ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - jobagent-net
+
 volumes:
   postgres_data:
+
+networks:
+  jobagent-net:
+    driver: bridge
